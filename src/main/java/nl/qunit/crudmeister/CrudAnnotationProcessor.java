@@ -4,10 +4,10 @@ package nl.qunit.crudmeister;
 import com.google.auto.service.AutoService;
 import com.squareup.javapoet.*;
 import nl.qunit.crudmeister.annotations.CRUD;
+import nl.qunit.crudmeister.model.ControllerFacade;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
@@ -49,11 +49,12 @@ public class CrudAnnotationProcessor extends AbstractProcessor {
             TypeSpec.Builder controllerBuilder = TypeSpec.classBuilder(controllerClassName)
                     .addAnnotation(Controller.class)
                     .addModifiers(Modifier.PUBLIC)
-                    .addField(FieldSpec.builder(ClassName.get("nl.qunit.crudmeister", "ControllerFacade"), "controllerFacade")
+                    .addField(FieldSpec.builder(ControllerFacade.class, "controllerFacade")
                             .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
-                            .initializer("new $T()", ClassName.get("nl.qunit.crudmeister", "ControllerFacade"))
+                            .initializer("new $T()", ControllerFacade.class)
                             .build())
-                    .addMethod(generateGetAllMethod(typeElement, crudAnnotation));
+                    .addMethod(generateGetAllMethod(typeElement, crudAnnotation))
+                    .addMethod(generateGetById(typeElement, crudAnnotation));
 
             // Add the RequestMapping annotation to the class
             AnnotationSpec requestMappingAnnotation = AnnotationSpec.builder(RequestMapping.class)
@@ -93,10 +94,42 @@ public class CrudAnnotationProcessor extends AbstractProcessor {
                         .addMember("value", "$S", "/testresources")
                         .addMember("produces", "$S", "application/vnd." + crudAnnotation.contentName() + "+json;version=" + crudAnnotation.version())
                         .build())
+                .addAnnotation(ResponseBody.class)
                 .returns(returnType);
 
         // Generate the method body
         methodBuilder.addStatement("return controllerFacade.getAll($T.class)", typeElement);
+
+        return methodBuilder.build();
+    }
+
+    private MethodSpec generateGetById(TypeElement typeElement, CRUD crudAnnotation) {
+        // Create the ResponseEntity<List<ClassName>> return type
+        ParameterizedTypeName returnType = ParameterizedTypeName.get(
+                ClassName.get(ResponseEntity.class),
+                ClassName.get(typeElement)
+
+        );
+
+        // Create the method signature and annotations
+        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("getById")
+                .addModifiers(Modifier.PUBLIC)
+                .addAnnotation(AnnotationSpec.builder(GetMapping.class)
+                        .addMember("value", "$S", "/testresources/{id}")
+                        .addMember("produces", "$S", "application/vnd." + crudAnnotation.contentName() + "+json;version=" + crudAnnotation.version())
+                        .build())
+                .addAnnotation(ResponseBody.class)
+                .addParameter(ParameterSpec.builder(
+                                ClassName.get(String.class), "id")
+                        .addAnnotation(AnnotationSpec.builder(
+                                PathVariable.class)
+                                .addMember("value", "$S", "id")
+                                .build())
+                        .build())
+                .returns(returnType);
+
+        // Generate the method body
+        methodBuilder.addStatement("return controllerFacade.getById(id, $T.class)", typeElement);
 
         return methodBuilder.build();
     }
