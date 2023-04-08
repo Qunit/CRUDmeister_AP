@@ -1,5 +1,6 @@
 package nl.qunit.crudmeister.annotations;
 
+import nl.qunit.crudmeister.ControllerMethod;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 import java.lang.annotation.ElementType;
@@ -14,5 +15,5 @@ public @interface Annotations {
 
     AnnotationItem[] annotations() default {};
 
-    RequestMethod[] methods();
+    ControllerMethod[] methods();
 }
