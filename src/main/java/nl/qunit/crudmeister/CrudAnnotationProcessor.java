@@ -6,9 +6,12 @@ import com.squareup.javapoet.*;
 import jakarta.validation.Valid;
 import nl.qunit.crudmeister.annotations.AnnotationItem;
 import nl.qunit.crudmeister.annotations.CRUD;
+import nl.qunit.crudmeister.groups.Post;
+import nl.qunit.crudmeister.groups.Put;
 import nl.qunit.crudmeister.model.ControllerFacade;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.processing.*;
@@ -60,8 +63,8 @@ public class CrudAnnotationProcessor extends AbstractProcessor {
                             .build())
                     .addMethod(generateGetAllMethod(typeElement, crudAnnotation))
                     .addMethod(generateGetById(typeElement, crudAnnotation))
-                    .addMethod(generatePostPut(typeElement, crudAnnotation, ControllerMethod.POST))
-                    .addMethod(generatePostPut(typeElement, crudAnnotation, ControllerMethod.PUT));
+                    .addMethod(generatePostPut(typeElement, crudAnnotation, ControllerMethod.POST, Post.class))
+                    .addMethod(generatePostPut(typeElement, crudAnnotation, ControllerMethod.PUT, Put.class));
 
             // Add the RequestMapping annotation to the class
             AnnotationSpec requestMappingAnnotation = AnnotationSpec.builder(RequestMapping.class)
@@ -84,7 +87,7 @@ public class CrudAnnotationProcessor extends AbstractProcessor {
         return true;
     }
 
-    private MethodSpec generatePostPut(TypeElement typeElement, CRUD crudAnnotation, ControllerMethod method) {
+    private MethodSpec generatePostPut(TypeElement typeElement, CRUD crudAnnotation, ControllerMethod method, Class<?> validatorClass) {
         // Create the ResponseEntity<List<ClassName>> return type
         ParameterizedTypeName returnType = ParameterizedTypeName.get(
                 ClassName.get(ResponseEntity.class),
@@ -104,7 +107,9 @@ public class CrudAnnotationProcessor extends AbstractProcessor {
                 .addAnnotation(ResponseBody.class)
                 .addAnnotations(getAnnotations(crudAnnotation, method))
                 .addParameter(ParameterSpec.builder(ClassName.get(typeElement), "element")
-                        .addAnnotation(Valid.class)
+                        .addAnnotation(AnnotationSpec.builder(Validated.class)
+                                .addMember("value", "$T.class", validatorClass)
+                                .build())
                         .addAnnotation(RequestBody.class)
                         .build())
                 .returns(returnType);
