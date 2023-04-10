@@ -1,6 +1,7 @@
 package nl.qunit.crudmeister.annotations;
 
 import nl.qunit.crudmeister.model.Migrator;
+import nl.qunit.crudmeister.model.NoOpMigrator;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.lang.annotation.Retention;
@@ -11,15 +12,13 @@ import java.lang.annotation.Retention;
 public @interface CRUD {
     int version();
 
-    Class<? extends Migrator> down();
+    Class<? extends Migrator> down() default NoOpMigrator.class;
 
-    Class<? extends Migrator> up();
+    Class<? extends Migrator> up()  default NoOpMigrator.class;
 
     String collection();
 
     String contentName();
-
-    Annotations[] resourceAnnotations() default {};
 
     Annotations[] controllerAnnotations() default {};
 }

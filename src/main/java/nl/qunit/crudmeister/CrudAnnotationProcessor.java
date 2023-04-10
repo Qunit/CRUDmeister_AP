@@ -9,6 +9,7 @@ import nl.qunit.crudmeister.annotations.CRUD;
 import nl.qunit.crudmeister.groups.Post;
 import nl.qunit.crudmeister.groups.Put;
 import nl.qunit.crudmeister.model.ControllerFacade;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
@@ -58,8 +59,8 @@ public class CrudAnnotationProcessor extends AbstractProcessor {
                     .addAnnotation(Controller.class)
                     .addModifiers(Modifier.PUBLIC)
                     .addField(FieldSpec.builder(ControllerFacade.class, "controllerFacade")
-                            .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
-                            .initializer("new $T()", ControllerFacade.class)
+                            .addAnnotation(Autowired.class)
+                            .addModifiers(Modifier.PRIVATE)
                             .build())
                     .addMethod(generateGetAllMethod(typeElement, crudAnnotation))
                     .addMethod(generateGetById(typeElement, crudAnnotation))
@@ -140,10 +141,20 @@ public class CrudAnnotationProcessor extends AbstractProcessor {
                         .build())
                 .addAnnotation(ResponseBody.class)
                 .addAnnotations(getAnnotations(crudAnnotation, ControllerMethod.GET_ALL))
+                .addParameter(ParameterSpec.builder(ClassName.get(Integer.class), "pageSize")
+                        .addAnnotation(AnnotationSpec.builder(RequestParam.class)
+                                .addMember("value", "$S", "pageSize")
+                                .build())
+                        .build())
+                .addParameter(ParameterSpec.builder(ClassName.get(String.class), "lastSeenId")
+                        .addAnnotation(AnnotationSpec.builder(RequestParam.class)
+                                .addMember("value", "$S", "lastSeenId")
+                                .build())
+                        .build())
                 .returns(returnType);
 
         // Generate the method body
-        methodBuilder.addStatement("return controllerFacade.getAll($T.class)", typeElement);
+        methodBuilder.addStatement("return controllerFacade.getAll($T.class, lastSeenId, pageSize)", typeElement);
 
         return methodBuilder.build();
     }
