@@ -2,6 +2,7 @@ package nl.qunit.crudmeister.annotations;
 
 import nl.qunit.crudmeister.model.Migrator;
 import nl.qunit.crudmeister.model.NoOpMigrator;
+import org.checkerframework.checker.units.qual.C;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.lang.annotation.Retention;
@@ -16,7 +17,7 @@ public @interface CRUD {
 
     Class<? extends Migrator> up()  default NoOpMigrator.class;
 
-    String collection();
+    Class<?> collection();
 
     String contentName();
 
